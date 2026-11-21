@@ -56,7 +56,9 @@ jobs:
       - name: Fetch the newest release tag
         run: |
           tag=$(git ls-remote --tags --sort=-v:refname origin 'v*.*.*' | grep -v '\^{}' | head -1 | sed 's#.*refs/tags/##')
-          git fetch --depth=1 origin "refs/tags/$tag:refs/tags/$tag"
+          if [ -n "$tag" ]; then
+            git fetch --depth=1 origin "refs/tags/$tag:refs/tags/$tag"
+          fi
 
       - name: Check released changelog sections
         run: npm run check:released-changelogs
