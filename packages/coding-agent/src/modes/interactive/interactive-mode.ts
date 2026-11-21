@@ -123,6 +123,7 @@ import {
 } from "../../core/session-manager.ts";
 import type { FullscreenExitOutput, TuiMode } from "../../core/settings-manager.ts";
 import { BUILTIN_SLASH_COMMANDS } from "../../core/slash-commands.ts";
+import { TodoManager } from "../../core/todo-manager.ts";
 import { getSourcePackageKey, type SourceInfo } from "../../core/source-info.ts";
 import { isInstallTelemetryEnabled } from "../../core/telemetry.ts";
 import { withBuiltInRenderers } from "../../core/tools/renderers/index.ts";
@@ -669,6 +670,7 @@ export class InteractiveMode {
 	};
 	private autoTrustOnReloadCwd: string | undefined;
 	private themeController: InteractiveThemeController;
+	private todoManager: TodoManager = new TodoManager();
 
 	// Convenience accessors
 	private get session(): AgentSession {
@@ -3495,6 +3497,11 @@ export class InteractiveMode {
 			if (text === "/new") {
 				this.editor.setText("");
 				await this.handleClearCommand();
+				return;
+			}
+			if (text === "/todo" || text.startsWith("/todo ")) {
+				this.handleTodoCommand(text.slice(5).trim());
+				this.editor.setText("");
 				return;
 			}
 			if (text === "/compact" || text.startsWith("/compact ")) {
@@ -7353,5 +7360,46 @@ export class InteractiveMode {
 			this.isInitialized = false;
 		}
 		this.unregisterSignalHandlers();
+	}
+
+	/** Handle the /todo slash command: add, list, or complete todo items for the current session. */
+	private handleTodoCommand(args: string): void {
+		const parts = args.split(' ');
+		const subcommand = parts[0];
+
+		if (subcommand === 'add') {
+			const text = parts.slice(1).join(' ');
+			if (!text.trim()) {
+				this.showStatus('Usage: /todo add <text>');
+				return;
+			}
+			const item = this.todoManager.add(text);
+			this.showStatus(`Added todo #${item.id}: ${text}`);
+		} else if (subcommand === 'list' || subcommand === '') {
+			const todos = this.todoManager.list();
+			if (todos.length === 0) {
+				this.showStatus('No todos yet');
+				return;
+			}
+			const todoLines = todos.map((t) => {
+				const status = t.completed ? 'x' : ' ';
+				return `[${status}] #${t.id}: ${t.text}`;
+			});
+			this.showStatus('Todos:\n' + todoLines.join('\n'));
+		} else if (subcommand === 'complete') {
+			const id = parts[1];
+			if (!id) {
+				this.showStatus('Usage: /todo complete <id>');
+				return;
+			}
+			const item = this.todoManager.complete(id);
+			if (item) {
+				this.showStatus(`Completed todo #${id}: ${item.text}`);
+			} else {
+				this.showStatus(`Todo #${id} not found`);
+			}
+		} else {
+			this.showStatus('Usage: /todo [add <text>|list|complete <id>]');
+		}
 	}
 }
