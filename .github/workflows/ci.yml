@@ -55,7 +55,7 @@ jobs:
       # The checkout has no tags; the released changelog sections are compared with the newest release tag.
       # Skip on fork PRs where release tags don't exist.
       - name: Fetch the newest release tag
-        if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
+        if: github.event_name == 'push' || (github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository)
         run: |
           tag=$(git ls-remote --tags --sort=-v:refname origin 'v*.*.*' | grep -v '\^{}' | head -1 | sed 's#.*refs/tags/##')
           if [ -n "$tag" ]; then
@@ -63,7 +63,7 @@ jobs:
           fi
 
       - name: Check released changelog sections
-        if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
+        if: github.event_name == 'push' || (github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository)
         run: npm run check:released-changelogs
 
   # Tests are split across parallel jobs so the slowest suites do not run back to back.

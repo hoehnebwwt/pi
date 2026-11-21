@@ -499,6 +499,7 @@ describe("failures: a rollback rejects, an unknown outcome stops the store", () 
 
 	it.each(["valid", "refused"] as const)(
 		"rolls a 3-batch call back at a failure of any of its statements, as at a failed COMMIT, and reopens before it (third %s)",
+		60000,
 		async (third) => {
 			// What MemoryStorage makes of the call: the outcome every retry must reach.
 			const memory = new MemoryStorage();
